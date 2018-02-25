@@ -126,6 +126,10 @@ public class MyMIPushMessageProcessor {
 //                Log4a.w(TAG, "receive a mipush message, we can see the app " + buildContainer.packageName+ ", but we can't see the receiver.");
 //            }
 //        }
+        if (!AppInfoUtils.isPkgInstalled(paramXMPushService, buildContainer.packageName)) {
+            sendAppNotInstallNotification(paramXMPushService, buildContainer);
+            return;
+        }
 
         String paramString = MIPushNotificationHelper.getTargetPackage(buildContainer);
 

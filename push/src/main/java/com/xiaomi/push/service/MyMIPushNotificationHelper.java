@@ -58,6 +58,15 @@ public class MyMIPushNotificationHelper {
         }
         Log4a.i(TAG, "title:" + title + "  description:" + description);
 
+        if (description.length() > 30) { //TODO length 30 is constant
+            Notification.BigTextStyle style = new Notification.BigTextStyle();
+            style.bigText(description);
+            style.setBigContentTitle(title);
+            style.setSummaryText(description);
+            localBuilder.setStyle(style);
+        }
+
+
         // Set small icon
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             int iconId = getIconId(var0, buildContainer.getPackageName(), NOTIFICATION_ICON);
