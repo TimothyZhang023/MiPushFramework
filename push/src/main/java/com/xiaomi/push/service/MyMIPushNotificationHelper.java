@@ -39,8 +39,8 @@ import static top.trumeet.common.utils.NotificationUtils.getChannelIdByPkg;
  */
 
 public class MyMIPushNotificationHelper {
-    private static final String NOTIFICATION_ICON = "mipush_notification";
-    private static final String NOTIFICATION_SMALL_ICON = "mipush_small_notification";
+    private static final String NOTIFICATION_ICON = "ic_launcher";
+    private static final String NOTIFICATION_SMALL_ICON = "ic_stat_notify_24dp";
 
     private static final String TAG = "MyMIPushNotificationHelper";
 
@@ -69,21 +69,35 @@ public class MyMIPushNotificationHelper {
 
         // Set small icon
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int iconId = getIconId(var0, buildContainer.getPackageName(), NOTIFICATION_ICON);
-            int iconId2 = getIconId(var0, buildContainer.getPackageName(), NOTIFICATION_SMALL_ICON);
-            int iconIdFinal;
-            Log4a.d(TAG, "id: " + iconId + ", id2: " + iconId2);
-            if (iconId <= 0 || iconId2 <= 0) {
-                iconIdFinal = getIdForSmallIcon(var0, buildContainer.getPackageName());
-                if (iconIdFinal == 0)
-                    iconIdFinal = R.drawable.ic_notifications_black_24dp;
+            int iconLargeId = getIconId(var0, buildContainer.getPackageName(), NOTIFICATION_ICON);
+            int iconSmallId = getIconId(var0, buildContainer.getPackageName(), NOTIFICATION_SMALL_ICON);
+
+            Log4a.d(TAG, "id: " + iconLargeId + ", id2: " + iconSmallId);
+            Bitmap iconBitmap = null;
+            try {
+                Drawable icon = var0.getPackageManager().getApplicationIcon(buildContainer.getPackageName());
+                iconBitmap = MIPushNotificationHelper.drawableToBitmap(icon);
+            } catch (Exception ignored) {
+            }
+
+            if (iconLargeId <= 0) {
+                if (iconBitmap != null) {
+                    localBuilder.setLargeIcon(iconBitmap);
+                }
             } else {
-                localBuilder.setLargeIcon(getBitmapFromId(var0, iconId));
-                iconIdFinal = iconId2;
+                localBuilder.setLargeIcon(getBitmapFromId(var0, iconLargeId));
+            }
+
+            if (iconSmallId <= 0) {
+                if (iconBitmap != null) {
+                    localBuilder.setSmallIcon(Icon.createWithBitmap(iconBitmap)); //but non-pic in notification detail
+                } else {
+                    localBuilder.setSmallIcon(R.drawable.ic_notifications_black_24dp);
+                }
+            } else {
+                localBuilder.setSmallIcon(Icon.createWithResource(buildContainer.getPackageName(), iconSmallId));
             }
             // TODO: 系统会把 Icon tint 成白块
-            localBuilder.setSmallIcon(Icon.createWithResource(buildContainer.getPackageName()
-                    , iconIdFinal));
         } else {
             // TODO: Icon 向下兼容
             localBuilder.setSmallIcon(R.drawable.ic_notifications_black_24dp);
