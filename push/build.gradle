@@ -85,3 +85,67 @@ dependencies {
     implementation project(':extenders')
     implementation "com.android.support:palette-v7:$supportLibraryVersion"
 }
+
+
+apply plugin: 'hiBeaver'
+import com.bryansharp.gradle.hibeaver.utils.MethodLogAdapter
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+
+hiBeaver {
+    //下面这个参数仅仅影响log输出，为本次修改命名，无实际意义，不配置也可以
+    hiBeaverModifyName = 'timothyMiPushHook'
+    //设置为true可以显示帮助内容，默认为true
+    showHelp = true
+    //keepQuiet默认为false,为true时不会有字节码修改的log输出，建议为false
+    keepQuiet = false
+    //下面的参数设置为true时会输出工程编译耗时信息
+    watchTimeConsume = true
+
+    //重头戏是配置下面的参数：modifyMatchMaps
+    //基础配置结构形如： ['class':[[:],[:]],'class':[[:],[:]]], 类型是 Map<String, List<Map<String, Object>>>
+    modifyMatchMaps = [
+            //此处可以进行模糊匹配，!表示排除，!android*即表示排除掉android开头的全类名。
+            //|符号不完全表示或，而仅仅是匹配的分隔符。*表示任意长度（>0）的任意字符
+            '*Activity|*Receiver|!android*'             : [
+                    //methodDesc设置为空代表对methodDesc不进行限制
+                    //方法名也可以用模糊匹配 用javap -s 命令来查看类中方法的description
+                    ['methodName': 'on**', 'methodDesc': null, 'adapter': {
+                        ClassVisitor cv, int access, String name, String desc, String signature, String[] exceptions ->
+                            MethodVisitor methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
+                            MethodVisitor adapter = new MethodLogAdapter(methodVisitor) {
+                                @Override
+                                void visitCode() {
+                                    super.visitCode();
+                                    methodVisitor.visitLdcInsn(desc);
+                                    methodVisitor.visitLdcInsn(name);
+                                    //下面这行代码 为要调用的方法，请酌情修改
+                                    methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC,
+                                            "com/xiaomi/push/Hooks",
+                                            "hookXM", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+                                }
+                            }
+                            return adapter;
+                    }]
+            ]
+            ,
+            //此处以r:开头，代表正则表达式匹配模式
+            'r:.*D[a-zA-Z]*Client'              : [
+                    ['methodName': 'on**', 'methodDesc': null, 'adapter': {
+                        ClassVisitor cv, int access, String name, String desc, String signature, String[] exceptions ->
+                            MethodVisitor methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
+                            MethodVisitor adapter = new MethodLogAdapter(methodVisitor) {
+                                @Override
+                                void visitCode() {
+                                    super.visitCode();
+                                }
+                            }
+                            return adapter;
+                    }]
+            ]
+    ]
+    //下面为对Jar或Aar进行单独修改的配置，执行hibeaverModifyFiles的Gradle任务来对路径所指向的文件进行修改，
+    //产出物在build/HiBeaver目录下
+    modifyTasks = ["${rootDir.absolutePath}/libs/miuipushsdkshared.jar": modifyMatchMaps]
+}
