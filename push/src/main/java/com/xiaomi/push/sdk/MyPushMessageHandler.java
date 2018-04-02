@@ -42,8 +42,15 @@ public class MyPushMessageHandler extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        int opResult = AppOpsManagerOverride.checkOpNoThrow(AppOpsManagerOverride.OP_GET_USAGE_STATS, Process.myUid(),
-                getPackageName(), (AppOpsManager) getSystemService(APP_OPS_SERVICE));
+        int opResult = AppOpsManager.MODE_IGNORED;
+
+        try {
+            opResult = AppOpsManagerOverride.checkOpNoThrow(AppOpsManagerOverride.OP_GET_USAGE_STATS, Process.myUid(),
+                    getPackageName(), (AppOpsManager) getSystemService(APP_OPS_SERVICE));
+        } catch (Throwable var3) {
+            Log4a.e(TAG, var3);
+        }
+
         if (opResult == AppOpsManager.MODE_IGNORED) {
             guideToSetStatsPermission();
             return;
@@ -126,7 +133,7 @@ public class MyPushMessageHandler extends IntentService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_WARNING,
                     getString(R.string.notification_category_warning),
-                    NotificationManager.IMPORTANCE_MAX);
+                    NotificationManager.IMPORTANCE_HIGH);
             manager.createNotificationChannel(channel);
         }
 
@@ -145,10 +152,15 @@ public class MyPushMessageHandler extends IntentService {
     }
 
     public static boolean isAppForeground(String packageName, Context context) {
-        int level = ActivityManagerOverride.getPackageImportance(packageName,
-                ((ActivityManager) context.getSystemService(ACTIVITY_SERVICE)));
-        Log4a.d(TAG, "Importance flag: " + level);
-        return level == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
+        try {
+            int level = ActivityManagerOverride.getPackageImportance(packageName,
+                    ((ActivityManager) context.getSystemService(ACTIVITY_SERVICE)));
+            Log4a.d(TAG, "Importance flag: " + level);
+            return level == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
+        } catch (Throwable var3) {
+            return false;
+        }
+
     }
 
 }
